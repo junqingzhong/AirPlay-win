@@ -1,0 +1,57 @@
+plugins {
+    id 'io.freefair.lombok' version '8.10'
+    id 'com.adarshr.test-logger' version '4.0.0'
+}
+
+ext {
+    springBootVersion = '3.3.6'
+    springDepMgmtVersion = '1.1.6'
+    junitVersion = '5.10.2'
+    nettyVersion = '4.1.115.Final'
+    slf4jVersion = '2.0.16'
+    logbackVersion = '1.5.12'
+    jnaVersion = '5.15.0'
+    jmdnsVersion = '3.5.12'
+    plistVersion = '1.28'
+    eddsaVersion = '0.3.0'
+    curve25519Version = '0.5.0'
+    gstreamerCoreVersion = '1.4.0'
+    gstreamerSwingVersion = '0.9.0'
+}
+
+allprojects {
+    apply plugin: 'java'
+
+    group 'com.github.serezhka'
+    version '1.0.8'
+
+    repositories {
+        mavenCentral()
+    }
+
+    compileJava.options.encoding = 'UTF-8'
+    compileTestJava.options.encoding = 'UTF-8'
+    javadoc.options.encoding = 'UTF-8'
+}
+
+subprojects {
+    apply plugin: 'io.freefair.lombok'
+    apply plugin: 'com.adarshr.test-logger'
+
+    dependencies {
+        implementation "org.slf4j:slf4j-api:$slf4jVersion"
+        implementation "com.googlecode.plist:dd-plist:$plistVersion"
+
+        testImplementation(platform "org.junit:junit-bom:$junitVersion")
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}
+
+wrapper {
+    gradleVersion = '8.0.2'
+    distributionType = Wrapper.DistributionType.ALL
+}

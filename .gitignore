@@ -1,0 +1,56 @@
+# ==========================================
+# AirPlay-Server .gitignore
+# ==========================================
+
+# ---- 大文件（超过 GitHub 100MB 限制，通过 Release 发布）----
+AirPlay-Server.exe
+source/ffmpeg-fdk.exe
+gstreamer-1.0-msvc-x86_64-*.exe
+
+# ---- 构建产物（可重新生成）----
+build/jre/
+build/gstreamer/
+build/bin/
+build/*.jar
+build/SfxStub.exe
+build/payload.zip
+build/log
+
+# ---- Java/Gradle 构建缓存 ----
+source/java-airplay/**/build/
+source/java-airplay/.gradle/
+source/java-airplay/**/.gradle/
+*.class
+*.jar
+!source/java-airplay/**/libs/*.jar
+!build/config/*.jar
+
+# ---- IDE 配置 ----
+.trae/
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.settings/
+.project
+.classpath
+.factorypath
+
+# ---- 操作系统文件 ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ---- 运行时日志 ----
+*.log
+log
+
+# ---- 临时文件 ----
+*.tmp
+*.temp
+*.bak
+*.orig

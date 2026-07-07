@@ -1,0 +1,179 @@
+AirPlay Server v1.0.8 使用说明
+================================
+
+【简介】
+AirPlay Server 是一个 Windows 平台的 AirPlay 接收端，支持 iPhone/iPad 投屏到电脑。
+v1.0.8 采用 appsink + Java Sound API 音频方案，彻底解决了无声问题，开箱即用。
+
+【系统要求】
+- Windows 10/11 64位
+- 与 iPhone/iPad 在同一局域网
+- 首次运行需要约 400MB 临时空间（%TEMP%\AirPlay-Server）
+
+【快速开始】
+1. 双击运行 AirPlay-Server.exe
+2. 首次运行会自动解压到临时目录（约 10-30 秒）
+3. 控制台窗口会显示启动日志（Spring Boot 启动、AirPlay 服务注册等）
+4. 系统托盘会出现 AirPlay 图标
+5. 在 iPhone 上打开控制中心 → 屏幕镜像 → 选择设备名（默认 "srzhka"）
+6. 投屏成功，画面+声音都会传输到电脑
+
+【v1.0.8 新增功能（2026-07-07 更新）】
+1. ✅ 控制台日志输出：运行 exe 后会打开控制台窗口，实时显示：
+   - Spring Boot 启动日志
+   - AirPlay 服务注册状态（端口、网络接口）
+   - 音频管线启动状态
+   - 音量变化日志
+   - 连接/断开事件
+   用户可以清楚看到是否连上、效果如何。
+
+2. ✅ 配置文件保留：修改 %TEMP%\AirPlay-Server\config\application.properties 后，
+   重启 exe 配置不会被覆盖（serverName、landscape 等修改都会保留）。
+
+3. ✅ 音量控制：手机侧音量调节现在可以控制 Windows 端音量。
+   - 通过 RTSP SET_PARAMETER volume 参数解析
+   - 使用 Java Sound API FloatControl.Type.MASTER_GAIN 应用音量
+   - 支持 -144.0 dB（静音）到 0.0 dB（最大）范围
+
+4. ✅ UTF-8 控制台编码：支持中文设备名正确显示（设置代码页 65001 + JVM UTF-8 编码）。
+
+【功能特性】
+✅ 视频投屏（H.264 解码，GStreamer autovideosink）
+✅ 音频传输（AAC-ELD / ALAC / AAC-LC 解码）
+✅ 横屏模式（默认开启，画面自动旋转 90°）
+✅ GStreamer 完整音视频支持（默认播放器）
+✅ FFmpeg 音频支持（Java Sound API 播放，备选播放器）
+✅ 音量控制（手机侧调节 → Windows 端同步）
+✅ 控制台日志输出（实时查看运行状态）
+✅ 配置文件保留（修改不丢失）
+✅ 系统托盘图标，右键退出
+✅ Bonjour/mDNS 自动发现
+✅ 单 exe 文件，无需安装任何依赖
+
+【v1.0.8 核心改进】
+1. 音频输出改用 appsink + Java Sound API（不再依赖 GStreamer autoaudiosink）
+   - 彻底解决 autoaudiosink 在某些环境下静默失败的问题
+   - GStreamer 仅负责解码，音频输出由 Java Sound API 处理
+2. ALAC magic cookie 动态生成（支持 44100/48000Hz, 16/24-bit, 单声道/立体声）
+3. FFmpegPlayer 路径自动查找（支持 SFX 解压环境）
+4. 依赖全面升级（见下方技术版本）
+
+【播放器模式切换】
+默认使用 GStreamer 播放器（完整音视频+横屏）。
+如需切换到 FFmpeg 模式（音频+视频需 ffplay）：
+1. 编辑 %TEMP%\AirPlay-Server\config\application.properties
+2. 修改 player.implementation=ffmpeg
+3. 重启 AirPlay-Server.exe（配置会自动保留，不会被覆盖）
+
+【配置说明】
+配置文件位置：%TEMP%\AirPlay-Server\config\application.properties
+注意：修改配置后重启 exe，配置文件会被保留，不会被默认值覆盖。
+
+常用配置：
+- airplay.serverName=srzhka          # AirPlay 设备名称（支持中文）
+- airplay.width=1920                 # 视频宽度
+- airplay.height=1080                # 视频高度
+- airplay.fps=60                     # 帧率
+- airplay.landscape=true             # 横屏模式（true=默认横屏，画面旋转90°）
+- player.implementation=gstreamer    # 播放器：gstreamer/ffmpeg/vlc/h264-dump
+- player.gstreamer.swing=false       # GStreamer 是否用 Swing 窗口（true=独立窗口）
+
+【横屏模式说明】
+- airplay.landscape=true（默认）：画面自动旋转 90°，适合手机横屏投屏
+- airplay.landscape=false：画面保持原始方向
+- 横屏模式下 width/height 会自动交换（1920x1080 → 1080x1920）
+
+【控制台日志说明】
+运行 exe 后会弹出控制台窗口，显示以下日志：
+- [AirPlay-Server] 开头的行：SfxStub 解压和启动信息
+- Spring Boot banner 和启动日志
+- AirPlay control server listening on port: XXXXX（服务监听端口）
+- XXX._airplay._tcp.local service is registered（Bonjour 服务注册）
+- AirPlay volume change: X dB（音量变化）
+- Audio format: ... / audio pipeline started（音频管线状态）
+日志同时写入 %TEMP%\AirPlay-Server\log 文件。
+
+【技术版本】
+- Spring Boot 3.3.6（LTS，从 3.2.5 升级）
+- Netty 4.1.115.Final（安全 CVE 修复）
+- Gradle 8.0.2
+- JDK 17.0.19（jlink 精简 JRE，含 java.desktop 模块）
+- GStreamer 1.28.4（20 个精简插件）
+- ffmpeg 8.0（含 libfdk-aac 支持）
+- JNA 5.15.0
+- jmdns 3.5.12
+
+【音频技术方案】
+GStreamer 模式（默认）：
+  iPhone → RTP → FairPlay AES 解密 → AppSrc → avdec_alac/avdec_aac
+  → audioconvert → audioresample → PCM S16LE 44100Hz stereo
+  → AppSink → Java Sound API (SourceDataLine) → 扬声器
+
+FFmpeg 模式（备选）：
+  iPhone → RTP → FairPlay AES 解密 → ffmpeg (stdin)
+  → PCM S16LE 44100Hz stereo (stdout) → Java Sound API (SourceDataLine) → 扬声器
+
+音量控制流程：
+  iPhone 音量键 → RTSP SET_PARAMETER "volume: X.XXXXXX"
+  → ControlHandler 解析 → AirPlayConsumer.onVolumeChange()
+  → GstPlayer/FFmpegPlayer → FloatControl.Type.MASTER_GAIN → 扬声器音量
+
+【故障排除】
+1. 手机找不到设备：
+   - 确保电脑和手机在同一 WiFi
+   - 检查 Windows 防火墙是否允许 AirPlay-Server
+   - 尝试关闭 VPN 或虚拟网卡
+   - 查看控制台日志确认服务已注册
+
+2. 有画面无声音：
+   - 确认使用 gstreamer 模式（默认）
+   - 检查系统音量和扬声器连接
+   - 查看控制台日志，应出现 "Java Sound API audio output initialized"
+   - 和 "ALAC/AAC-ELD audio pipeline started"
+
+3. 音量控制无效：
+   - 确认手机已连接投屏
+   - 查看控制台日志是否有 "AirPlay volume change: X dB" 日志
+   - 如果没有日志，可能是手机未发送音量控制请求
+
+4. 修改配置不生效：
+   - 确保修改的是 %TEMP%\AirPlay-Server\config\application.properties
+   - 重启 exe 后配置会自动保留（不会被覆盖）
+   - 查看控制台日志确认服务名是否已更改
+
+5. 画面方向错误：
+   - 修改 airplay.landscape=false 关闭横屏
+   - 或保持 true 开启横屏（默认）
+
+6. 启动失败：
+   - 确保 %TEMP% 目录可写
+   - 检查是否有杀毒软件拦截
+   - 确保没有旧的 AirPlay-Server 进程在运行
+
+7. 退出后无法重新运行：
+   - 等待 5-10 秒让临时文件释放
+   - 或手动删除 %TEMP%\AirPlay-Server 目录
+
+【清理卸载】
+1. 退出系统托盘的 AirPlay 图标（右键 → Quit）
+2. 关闭控制台窗口
+3. 删除 %TEMP%\AirPlay-Server 目录
+4. 删除 AirPlay-Server.exe
+
+【可移植性】
+本程序为单 exe 文件（178 MB），包含：
+- 精简 JRE（44 MB，含 java.desktop 模块）
+- GStreamer 运行时（20 个插件 + 140+ DLL）
+- ffmpeg.exe（112 MB）
+- 应用 JAR（43 MB）
+- 配置文件
+
+可直接复制到任何 Windows 10/11 x64 机器运行，无需安装 Java、GStreamer 或 ffmpeg。
+
+【已知限制】
+- FairPlay DRM 保护内容不支持
+- FFmpeg 模式下视频需要 ffplay（GStreamer 模式下视频已内置支持）
+- 首次解压需要 10-30 秒
+
+版本：1.0.8
+构建日期：2026-07-07
